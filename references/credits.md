@@ -45,35 +45,43 @@ The skill adapts to whatever keys are configured. On every new session, check wh
 **Single-key mode** — only one key loaded:
 - All operations use that key
 - Same 500/700 thresholds apply
-- No automatic escalation (nowhere to escalate to)
+- No auto-switch (nowhere to go)
 
-**FREE + PAID** — both loaded:
-- Default operations on FREE
-- PAID only for operations that justify it (bulk exports > ~10 MB, enterprise endpoints)
-- Always announce when switching to PAID: *"Using PAID key, reason: {...}"*
+**FREE + PAID** — both loaded (user's typical setup):
+- Default = FREE
+- Auto-switch to PAID (with announce) when any of:
+  1. Operation is **strictly cheaper** on PAID (e.g. Plus plan 2 cr/MB vs Free 20 cr/MB → 3×+ savings)
+  2. Endpoint is **PAID-only** (some enterprise features, queries endpoint on Plus+)
+  3. FREE key returned `402` (quota exhausted) and task can't wait for monthly reset
+  4. Bulk export > 32k rows where pagination cost on FREE exceeds PAID export
+
+In all four cases: **announce before executing**, reason stated, user can abort with ctrl+c or a reply. **Never silent.**
 
 **Multi-FREE + PAID (rotation mode)** — several FREE + one PAID:
-- Use `FREE`. If it returns `402` (quota exceeded), automatically rotate to `FREE_2`, then `FREE_3`, etc. — free keys don't spend money, rotation is safe
-- Once ALL FREE keys are exhausted, **ask the user** before falling back to PAID. Never escalate to PAID automatically.
+- Use `FREE`. On `402`, rotate to `FREE_2`, `FREE_3`, etc. — free rotation is automatic and silent (no money spent)
+- When ALL FREE keys hit 402, apply the auto-switch rule above (announce + proceed on PAID unless user aborts)
 
-### Rotation algorithm (pseudo-code)
+### Auto-switch algorithm (pseudo-code)
 
 ```
-keys = [FREE, FREE_2, FREE_3, ...] available free keys
+keys = [FREE, FREE_2, FREE_3, ...]   # available free keys
 for key in keys:
     try:
-        result = call(endpoint, auth=key)
-        return result
+        return call(endpoint, auth=key)
     except HTTP402:
-        continue    # try next free key
-# All free exhausted:
+        continue                      # try next free, silent
+
+# All free exhausted OR one of the auto-switch triggers fires:
 if PAID available:
-    ask_user("All FREE keys exhausted. Continue on PAID? Estimated cost: X credits")
-    if approved:
-        return call(endpoint, auth=PAID)
+    reason = determine_reason()       # "all FREE exhausted" | "PAID-only endpoint"
+                                      # | "bulk export, PAID is 10x cheaper" | ...
+    announce(f"Using PAID key, reason: {reason}. Estimated cost: X credits.")
+    return call(endpoint, auth=PAID)  # proceed unless user interrupts
 else:
     raise error("Out of free quota, no PAID key configured")
 ```
+
+The announcement pattern is always: `"Using PAID, reason: <concrete justification>"`. If the reason can't be stated in one line, it's not a clear auto-switch — ask the user instead.
 
 ### Why separate keys instead of one shared
 
@@ -83,10 +91,11 @@ else:
 
 ### When using PAID (always)
 
-1. Announce: *"Using PAID key. Reason: bulk export of N MB ≈ M credits on Plus tier"*
-2. Ask if unsure whether the download is worth it
-3. Log what was downloaded so the user can audit spend
-4. **The 500/700 thresholds still apply** — PAID key does not exempt you from them
+1. **Announce before executing**: *"Using PAID key. Reason: bulk export of N MB ≈ M credits on Plus tier (vs ~10× more on FREE)"*
+2. **Never silent.** User must see the announcement and can abort before or during.
+3. **500/700 thresholds still apply** — PAID does not exempt. 700+ credits still stops, regardless of which key.
+4. **Log downloads** so user can audit spend.
+5. If you're unsure whether the auto-switch trigger is clearly met — **ask the user** instead of guessing.
 
 ## Cost model (what consumes credits)
 
