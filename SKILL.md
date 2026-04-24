@@ -60,10 +60,15 @@ Examples:
 **N+1 fetch trap:** never fetch results in many small calls — that's the #1 way to quietly burn thousands of credits. One query + paginated export with `limit=32000`. See `references/credits.md` "2000-fetches antipattern".
 
 **Key rotation & escalation** (see `references/credits.md` "Key loading policy"):
-- Single key loaded → use it for everything, thresholds still apply
-- Multiple FREE keys → rotate automatically on `402` (safe, no money spent)
-- All FREE exhausted + PAID available → **ask user** before escalating to PAID (never automatic)
-- Always announce PAID switch: *"Using PAID key, reason: {...}"*
+- Single key loaded → use it, thresholds still apply
+- Multiple FREE keys → rotate automatically on `402` (silent, no money spent)
+- **Auto-switch FREE → PAID** when ONE of these is clearly true:
+  1. PAID is strictly cheaper (3×+ savings, e.g. Plus 2 cr/MB vs Free 20 cr/MB on bulk)
+  2. Endpoint is PAID-only
+  3. All FREE keys hit 402
+  4. Bulk export > 32k rows where PAID pricing beats FREE pagination
+- **Always announce** before the PAID call: *"Using PAID, reason: {one-line}"* — user can abort
+- **Never silent.** If the trigger isn't clearly one of the four, ask the user instead
 
 See `references/credits.md` for the full rule set and cost estimation tables.
 
