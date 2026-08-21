@@ -1,4 +1,14 @@
-# Dune Analytics Skill
+# Dune Analytics — AI-agent skill
+
+> **Generated distribution mirror.** The canonical source, issues, and releases live in [https://github.com/Vo1ganin/crypto-claude-skills](https://github.com/Vo1ganin/crypto-claude-skills). Do not hand-edit generated files in this repository.
+
+AI-agent skill and DuneSQL examples for cost-aware blockchain analytics with the Dune API.
+
+- Canonical skill: [https://github.com/Vo1ganin/crypto-claude-skills/tree/main/skills/dune](https://github.com/Vo1ganin/crypto-claude-skills/tree/main/skills/dune)
+- Collection: [https://github.com/Vo1ganin/crypto-claude-skills](https://github.com/Vo1ganin/crypto-claude-skills)
+- Provenance: [`.source.json`](.source.json)
+
+## Skill documentation
 
 SQL-driven blockchain analytics on [Dune Analytics](https://dune.com) (100+ chains) for Claude Code.
 
